@@ -32,7 +32,7 @@ class DetailView(MethodView):
         return render_template('posts/detail.html', post=post)
 
     def post(self, slug):
-        context = self.get_context()
+        context = self.get_context(slug)
         form = context.get('form')
 
         if form.validate():
@@ -43,9 +43,9 @@ class DetailView(MethodView):
             post.comments.append(comment)
             post.save()
 
-            return redirect(url_for('post.detail', slug=slug))
+            return redirect(url_for('posts.detail', slug=slug))
 
-        return render_template('post/detail.html', **context)
+        return render_template('posts/detail.html', **context)
 
 # Register the urls
 posts.add_url_rule('/', view_func=ListView.as_view('list'))
