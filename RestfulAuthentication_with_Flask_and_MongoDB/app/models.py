@@ -9,7 +9,8 @@ from passlib.apps import custom_app_context as pwd_context
 
 class User(db.Document):
     __tablename__ = 'users'
-    username = db.StringField(max_length=32)
+    userid = db.SequenceField(required=True, primary_key=True)
+    username = db.StringField(max_length=32, unique=True)
     password_hash = db.StringField(max_length=128)
     created_at = db.DateTimeField(default=datetime.datetime.now)
 
