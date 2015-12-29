@@ -14,5 +14,6 @@ db = MongoEngine(api)
 from . import views             # to avoid circular import
 
 if __name__ == "__main__":
+    api.debug = True
     api.run()
 
