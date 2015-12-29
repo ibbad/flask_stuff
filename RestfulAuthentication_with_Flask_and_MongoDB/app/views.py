@@ -45,6 +45,10 @@ def get_user(id):
 @api.route('/api/resource')
 @auth.login_required
 def get_resource():
+    """
+    Do something for the client
+    :return:
+    """
     return jsonify({'data': 'Hello, %s' % g.user.username})
 
 
