@@ -8,6 +8,7 @@ from flask.ext.mongoengine import MongoEngine
 api = Flask(__name__)
 api.config["MONGODB_SETTINGS"] = {'DB': 'test_db'}
 api.config["SECRET_KEY"] = "$3cR3tK3Y"
+api.config["RESET_SECRET_KEY"] = "@ V3Ry $3cR3t k3Y"
 
 db = MongoEngine(api)
 

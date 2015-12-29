@@ -4,11 +4,15 @@ from flask.ext.httpauth import HTTPBasicAuth
 from passlib.apps import custom_app_context as pwd_context
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer, BadSignature, SignatureExpired
 import datetime
+from werkzeug.security import generate_password_hash, check_password_hash
+import random
+import string
 
 
 api = Flask(__name__)
 api.config["MONGODB_SETTINGS"] = {'DB': 'test_db'}
 api.config["SECRET_KEY"] = "$3cR3tK3Y"
+api.config["RESET_SECRET_KEY"] = "@ V3Ry $3cR3t k3Y"
 
 db = MongoEngine(api)
 auth = HTTPBasicAuth()
@@ -20,6 +24,9 @@ class User(db.Document):
     username = db.StringField(max_length=32, unique=True)
     password_hash = db.StringField(max_length=128)
     created_at = db.DateTimeField(default=datetime.datetime.now)
+
+    def __repr__(self):
+        return '<User %r>' % self.username
 
     def hash_password(self, password):
         self.password_hash = pwd_context.encrypt(password)
@@ -35,6 +42,16 @@ class User(db.Document):
         s = Serializer(api.config['SECRET_KEY'], expires_in=expiration)
         return s.dumps({'id': self.userid})
 
+    def generate_reset_token(self, expiration=int(datetime.timedelta(days=1).total_seconds())):
+        """
+
+        default expiration of 1 day.
+        :return:
+        """
+        s = Serializer(api.config["RESET_SECRET_KEY"], expires_in=expiration)
+        # TODO: Add a secret salt here, which can be rechecked upon return, something unique to the user
+        return s.dumps({'username': self.username})
+
     @staticmethod
     def verify_auth_token(token):
         s = Serializer(api.config['SECRET_KEY'])
@@ -46,6 +63,19 @@ class User(db.Document):
             return None             # invalid token.
 
         user = User.objects(userid=data['id'])
+        return user
+
+    @staticmethod
+    def verify_reset_token(reset_token):
+        s = Serializer(api.config["RESET_SECRET_KEY"])
+        try:
+            data = s.loads(reset_token)
+        except SignatureExpired:
+            return None             # token expired.
+        except BadSignature:
+            return None             # invalid token
+
+        user = User.objects(username=data['username']).first()
         return user
 
 @api.route('/')
@@ -105,6 +135,58 @@ def get_auth_token():
     print "here2"
     return jsonify({'token': token.decode('ascii'), 'duration': 600})
 
+@api.route('/api/user/change_password', methods=['POST'])
+@auth.login_required
+def change_password():
+    user = g.user
+    new_password = request.json.get('password')
+    user.password_hash = user.hash_password(new_password)
+    user.save()
+    return jsonify({'username': user.username, 'password_changed': 'success'}), 202
+
+@api.route('/api/user/request_reset_password', methods=['POST'])
+def get_reset_token():
+    username = request.json.get('username')
+    if username is None:
+        abort(400)          # no username provided.
+    user = User.objects(username=username).first()
+    if user is None:
+        abort(400)          # no user found.
+    reset_token = user.generate_reset_token()
+    return jsonify({'reset-password-token': reset_token.decode('ascii'), 'duration': '1 day'})
+
+@api.route('/api/user/v1.0/reset_password', methods=['POST'])
+def reset_password_v1():
+    """
+    When user gets a randomly generated password upon request for password change.
+    :return:
+    """
+    reset_token = request.json.get('rst_token')
+    user = User.verify_reset_token(reset_token)
+    if user is None:
+        abort(400)          # not a valid user
+    # Generate a random password and send it back to the user.
+    random_pwd = ''.join(random.SystemRandom().
+                         choice(string.ascii_uppercase+string.digits+string.ascii_lowercase)
+                         for _ in range(16))
+    user.hash_password(random_pwd)
+    user.save()
+    return jsonify({'new_password': random_pwd}), 201
+
+@api.route('/api/user/v1.1/reset_password', methods=['POST'])
+def reset_password_v2():
+    """
+    When user provides the new password.
+    :return:
+    """
+    reset_token = request.json.get('rst_token')
+    new_password = request.json.get('password')
+    user = User.verify_reset_token(reset_token)
+    if user is None:
+        abort(400)          # not a valid user
+    user.hash_password(new_password)
+    user.save()
+    return jsonify({'password_changed': 'success'}), 201
 
 if __name__ == "__main__":
     api.run(debug=True)
