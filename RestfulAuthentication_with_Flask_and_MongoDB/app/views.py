@@ -160,3 +160,6 @@ def reset_password_v2():
     user.hash_password(new_password)
     user.save()
     return jsonify({'status': 'password changed successfully'}), 201
+    user.hash_password(new_password)
+    user.save()
+    return jsonify({'password_changed': 'success'}), 201
