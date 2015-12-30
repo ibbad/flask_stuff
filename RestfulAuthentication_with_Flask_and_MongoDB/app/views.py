@@ -39,7 +39,7 @@ def new_user():
     username = request.json.get('username')
     password = request.json.get('password')
     if username is None or password is None:
-        return jsonify({'Error': 'Username, '}), 400
+        return jsonify({'Error': 'Username, password not provided'}), 400
     if len(User.objects(username=username)) > 0:
         return jsonify({'Error': 'Specified username already exists'}), 400
 
