@@ -139,9 +139,9 @@ def new_user():
     username = request.json.get('username')
     password = request.json.get('password')
     if username is None or password is None:
-        abort(400)      # missing arguments
+        return jsonify({'Error': 'Username, password not provided'}), 400
     if len(User.objects(username=username)) > 0:
-        abort(400)      # user already exists.
+        return jsonify({'Error': 'Specified username already exists'}), 400
 
     user = User(username=username)
     user.hash_password(password)
@@ -158,7 +158,7 @@ def get_user(id):
     """
     user = User.objects(userid=id).first()
     if user is None:              # no user found
-        abort(400)
+        return jsonify({'Error': 'No user found'}), 404
     return jsonify({'username': user.username})
 
 @api.route('/api/resource')
@@ -173,8 +173,8 @@ def get_auth_token():
     Request authentication token for logged in user.
     :return: authentication token for the user.
     """
-    token = g.user.generate_auth_token(expiration=datetime.timedelta(hours=12))
-    return jsonify({'token': token.decode('ascii'), 'Validity': 600})
+    token = g.user.generate_auth_token()
+    return jsonify({'token': token.decode('ascii'), 'Validity': '12 hours'})
 
 @api.route('/api/user/change_password', methods=['PUT'])
 @auth.login_required
@@ -198,10 +198,10 @@ def get_reset_token():
     """
     username = request.json.get('username')
     if username is None:
-        abort(400)          # no username provided.
+        return jsonify({'Error': 'No username provided in the reset password request'}), 400
     user = User.objects(username=username).first()
     if user is None:
-        abort(400)          # no user found.
+        return jsonify({'error': 'Specified user not found'}), 404
     reset_token = user.generate_reset_token()
     return jsonify({'reset-password-token': reset_token.decode('ascii'), 'Validity': '1 hour'})
 
@@ -214,7 +214,7 @@ def get_reset_token_v1(id):
     """
     user = User.objects(userid=id).first()
     if User is None:
-        abort(400)          # no user found provided.
+        return jsonify({'error': 'Invalid user'}), 400
     reset_token = user.generate_reset_token()
     return jsonify({'reset-password-token': reset_token.decode('ascii'), 'Validity': '1 hour'})
 
@@ -230,7 +230,8 @@ def reset_password_v1():
         return jsonify({'error': 'Please provide password reset token with the request'}), 400
     user = User.verify_reset_token(reset_token)
     if user is None:
-        abort(400)          # not a valid user
+        return jsonify({'error': 'Invalid token'}), 400
+
     # Generate a random password and send it back to the user.
     random_pwd = ''.join(random.SystemRandom().
                          choice(string.ascii_uppercase
@@ -255,7 +256,10 @@ def reset_password_v2():
     new_password = request.json.get('password')
     user = User.verify_reset_token(reset_token)
     if user is None:
-        abort(400)          # not a valid user
+        return jsonify({'error': 'Invalid token'}), 400
+    user.hash_password(new_password)
+    user.save()
+    return jsonify({'status': 'password changed successfully'}), 201
     user.hash_password(new_password)
     user.save()
     return jsonify({'password_changed': 'success'}), 201

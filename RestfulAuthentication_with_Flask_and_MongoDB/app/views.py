@@ -42,7 +42,6 @@ def new_user():
         return jsonify({'Error': 'Username, password not provided'}), 400
     if len(User.objects(username=username)) > 0:
         return jsonify({'Error': 'Specified username already exists'}), 400
-
     user = User(username=username)
     user.hash_password(password)
     user.save()
@@ -60,6 +59,16 @@ def get_user(id):
     if user is None:              # no user found
         return jsonify({'Error': 'No user found'}), 404
     return jsonify({'username': user.username})
+
+@api.route('/api/user/delete')
+@auth.login_required
+def delete_user():
+    success = User.objects(username=g.user.username).delete()
+    if success:
+        return jsonify({'Status': 'user deleted'}), 201
+    else:
+        return jsonify({'Error': 'User not found'}), 404
+
 
 @api.route('/api/resource')
 @auth.login_required
