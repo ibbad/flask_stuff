@@ -39,9 +39,9 @@ def new_user():
     username = request.json.get('username')
     password = request.json.get('password')
     if username is None or password is None:
-        abort(400)      # missing arguments
+        return jsonify({'Error': 'Username, '}), 400
     if len(User.objects(username=username)) > 0:
-        abort(400)      # user already exists.
+        return jsonify({'Error': 'Specified username already exists'}), 400
 
     user = User(username=username)
     user.hash_password(password)
@@ -58,7 +58,7 @@ def get_user(id):
     """
     user = User.objects(userid=id).first()
     if user is None:              # no user found
-        abort(400)
+        return jsonify({'Error': 'No user found'}), 404
     return jsonify({'username': user.username})
 
 @api.route('/api/resource')
@@ -98,10 +98,10 @@ def get_reset_token():
     """
     username = request.json.get('username')
     if username is None:
-        abort(400)          # no username provided.
+        return jsonify({'Error': 'No username provided in the reset password request'}), 400
     user = User.objects(username=username).first()
     if user is None:
-        abort(400)          # no user found.
+        return jsonify({'error': 'Specified user not found'}), 404
     reset_token = user.generate_reset_token()
     return jsonify({'reset-password-token': reset_token.decode('ascii'), 'Validity': '1 hour'})
 
@@ -114,7 +114,7 @@ def get_reset_token_v1(id):
     """
     user = User.objects(userid=id).first()
     if User is None:
-        abort(400)          # no user found provided.
+        return jsonify({'error': 'Invalid user'}), 400
     reset_token = user.generate_reset_token()
     return jsonify({'reset-password-token': reset_token.decode('ascii'), 'Validity': '1 hour'})
 
@@ -130,7 +130,8 @@ def reset_password_v1():
         return jsonify({'error': 'Please provide password reset token with the request'}), 400
     user = User.verify_reset_token(reset_token)
     if user is None:
-        abort(400)          # not a valid user
+        return jsonify({'error': 'Invalid token'}), 400
+
     # Generate a random password and send it back to the user.
     random_pwd = ''.join(random.SystemRandom().
                          choice(string.ascii_uppercase
@@ -155,110 +156,7 @@ def reset_password_v2():
     new_password = request.json.get('password')
     user = User.verify_reset_token(reset_token)
     if user is None:
-        abort(400)          # not a valid user
+        return jsonify({'error': 'Invalid token'}), 400
     user.hash_password(new_password)
     user.save()
-    return jsonify({'password_changed': 'success'}), 201
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-=======
-    token = g.user.generate_auth_token(600)
-    return jsonify({'token': token.decode('ascii'), 'duration': 600})
->>>>>>> dbb8b5940d025d10f2f108441cfa633d0a769a7c
-
-@api.route('/api/user/changepwd', methods=['POST'])
-@auth.login_required
-def change_password():
-    user = g.user
-    new_password = request.json.get('password')
-    user.hash_password(new_password)
-    user.save()
-    return jsonify({'username': user.username, 'password_changed': 'success'}), 202
-
-@api.route('/api/user/request_reset_password', methods=['POST'])
-def get_reset_token():
-    username = request.json.get('username')
-    if username is None:
-        abort(400)          # no username provided.
-    user = User.objects(username=username).first()
-    if user is None:
-        abort(400)          # no user found.
-    reset_token = user.generate_reset_token()
-    return jsonify({'reset-password-token': reset_token.decode('ascii'), 'duration': '1 day'})
-
-@api.route('/api/user/v1.0/reset_password', methods=['POST'])
-def reset_password_v1():
-    """
-    When user gets a randomly generated password upon request for password change.
-    :return:
-    """
-    reset_token = request.json.get('rst_token')
-    user = User.verify_reset_token(reset_token)
-    if user is None:
-        abort(400)          # not a valid user
-    # Generate a random password and send it back to the user.
-    random_pwd = ''.join(random.SystemRandom().
-                         choice(string.ascii_uppercase+string.digits+string.ascii_lowercase)
-                         for _ in range(16))
-    user.hash_password(random_pwd)
-    user.save()
-    return jsonify({'new_password': random_pwd}), 201
-
-@api.route('/api/user/v1.1/reset_password', methods=['POST'])
-def reset_password_v2():
-    """
-    When user provides the new password.
-    :return:
-    """
-    reset_token = request.json.get('rst_token')
-    new_password = request.json.get('password')
-    user = User.verify_reset_token(reset_token)
-    if user is None:
-        abort(400)          # not a valid user
-    user.hash_password(new_password)
-    user.save()
-    return jsonify({'password_changed': 'success'}), 201
+    return jsonify({'status': 'password changed successfully'}), 201
