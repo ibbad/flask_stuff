@@ -46,7 +46,7 @@ class User(db.Document):
         """
         return pwd_context.verify(password, self.password_hash)
 
-    def generate_auth_token(self, expiration=int(datetime.timedelta(hours=1).total_seconds())):
+    def generate_auth_token(self, expiration=int(datetime.timedelta(hours=12).total_seconds())):
         """
         Generated authentication token with default expiration of 1 hours.
         :return: authentication token.
@@ -54,7 +54,7 @@ class User(db.Document):
         s = Serializer(api.config["SECRET_KEY"], expires_in=expiration)
         return s.dumps({'username': self.username})
 
-    def generate_reset_token(self, expiration=int(datetime.timedelta(days=1).total_seconds())):
+    def generate_reset_token(self, expiration=int(datetime.timedelta(hours=1).total_seconds())):
         """
         Generated token for password reset request with default expiration of 1 day.
         :param expiration: token expiry limit, in seconds.
