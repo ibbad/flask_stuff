@@ -60,12 +60,12 @@ def get_user(id):
         return jsonify({'Error': 'No user found'}), 404
     return jsonify({'username': user.username})
 
-@api.route('/api/user/delete')
+@api.route('/api/user/delete', methods=['DELETE'])
 @auth.login_required
 def delete_user():
     success = User.objects(username=g.user.username).delete()
     if success:
-        return jsonify({'Status': 'user deleted'}), 201
+        return jsonify({'Status': 'user deleted'}), 302
     else:
         return jsonify({'Error': 'User not found'}), 404
 
@@ -142,10 +142,9 @@ def reset_password_v1():
         return jsonify({'error': 'Invalid token'}), 400
 
     # Generate a random password and send it back to the user.
-    random_pwd = ''.join(random.SystemRandom().
-                         choice(string.ascii_uppercase
-                                + string.digits
-                                + string.ascii_lowercase)
+    random_pwd = ''.join(random.SystemRandom().choice(string.ascii_uppercase
+                                                      + string.digits
+                                                      + string.ascii_lowercase)
                          for _ in range(16))
     user.hash_password(random_pwd)
     user.save()
