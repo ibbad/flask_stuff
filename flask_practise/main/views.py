@@ -4,6 +4,7 @@ from . import main
 from .forms import NameForm
 from .. import db
 from ..models import User
+from flask.ext.login import login_required
 
 
 @main.route('/', methods=['GET', 'POST'])
@@ -25,3 +26,9 @@ def index():
                            name=session.get('name'),
                            known = session.get('known', False),
                            current_time=datetime.utcnow())
+
+
+@main.route('/secret')
+@login_required
+def secret():
+  return "Only authenticated users are allowed!"
