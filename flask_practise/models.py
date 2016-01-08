@@ -50,6 +50,27 @@ class Post(db.Model):
     body_html = db.Column(db.Text)
     comments = db.relationship('Comment', backref='post', lazy='dynamic')
 
+    def to_json(self):
+        json_post ={
+            'url': url_for('api.get_post', id=self.id, _external=True),
+            'body': self.body,
+            'body_html': self.body_html,
+            'timestamp': self.timestamp,
+            'author': url_for('api.get_user', id=self.author_id,
+                              _external=True),
+            'comments': url_for('api.get_post_comments', id=self.id,
+                                _external=True),
+            'comment_count': self.comments.count()
+        }
+        return json_post
+
+    @staticmethod
+    def from_json(json_post):
+        body = json_post.get('body')
+        if body is None or body == '':
+            raise ValidationError('Post does not have a body')
+        return Post(body=body)
+
     @staticmethod
     def generate_fake(count=100):
         from random import seed, randint
@@ -166,6 +187,20 @@ class User(UserMixin, db.Model):
         self.confirmed = True
         db.session.add(self)
         return True
+
+    def generate_auth_token(self, expiration):
+        s = Serializer(current_app.config['SECRET_KEY'], expires_in=expiration)
+        return s.dumps({'id': self.id})
+
+    @staticmethod
+    def verify_auth_token(token):
+        s = Serializer(current_app.config['SECRET_KEY'])
+        try:
+            data = s.loads(token)
+        except:
+            return None
+        return User.query.get(data['id'])
+
 
     def ping(self):
         self.last_seen = datetime.utcnow()
@@ -313,8 +348,11 @@ class Comment(db.Model):
         }
         return json_comment
 
+    @staticmethod
     def from_json(json_comment):
         body = json_comment.get('body')
         if body is None or body=="":
             raise ValidationError('comment does not have a body.')
         return Comment(body=body)
+
+db.event.listen(Comment.body, 'set', Comment.on_changed_body)

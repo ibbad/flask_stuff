@@ -12,6 +12,9 @@ def verify_password(email_or_token, password):
         g.current_user = AnonymousUser
         return True
     if password == '':
+        """ assume that there is no password, just the token """
+        # FIXME: not particularly practical way. what if password is just some
+        # dummy string.
         g.current_user = User.verify_auth_token(email_or_token)
         g.token_used = True
         return g.current_user is not None
