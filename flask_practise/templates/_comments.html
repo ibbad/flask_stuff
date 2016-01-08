@@ -27,7 +27,7 @@
             </div>
             {% if moderate %}
                 <br>
-                {% if comment.disable %}
+                {% if comment.disabled %}
                 <a class="btn btn-default btn-xs" href="{{ url_for('.moderate_enable', id=comment.id, page=page )}}">
                     Enable
                 </a>
