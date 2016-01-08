@@ -1,8 +1,8 @@
-from flask import jsonfiy, request, current_app, url_for
+from flask import jsonify, request, current_app, url_for
 from . import api
 from ..models import User, Post
 
-@api.route('/users/<ind:id>')
+@api.route('/users/<int:id>')
 def get_user(id):
     user = User.query.get_or_404(id)
     return jsonfiy(user.to_json())

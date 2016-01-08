@@ -56,7 +56,7 @@ def get_post_comments(id):
                 })
 
 @api.route('/posts/<int:id>/comments/', methods=['POST'])
-@permission_required(Permission.COMENT)
+@permission_required(Permission.COMMENT)
 def new_post_comment(id):
     post = Post.query.get_or_404(id)
     comment = Comment.from_json(request.json)
